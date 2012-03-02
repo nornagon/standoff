@@ -29,6 +29,7 @@ class Game extends atom.Game
       gridy = Math.floor my/arrowSize
       @clicked gridx, gridy
   clicked: (x, y) ->
+    return unless 0 <= x < @size and 0 <= y < @size
     @grid[y*@size+x] = null
     loop
       break unless @resolveDuels()
