@@ -31,11 +31,13 @@ class Game extends atom.Game
   clicked: (x, y) ->
     return unless 0 <= x < @size and 0 <= y < @size
     @grid[y*@size+x] = null
+    round = 1
     loop
-      break unless @resolveDuels()
-  resolveDuels: ->
-    # remove any duelists
-    dead = 0
+      break unless @resolveDuels(round++)
+    @dirty = true
+  resolveDuels: (round) ->
+    # remove one round of duelists
+    dead = []
     for y in [0...@size]
       for x in [0...@size]
         dir = @grid[y*@size+x]
@@ -51,11 +53,12 @@ class Game extends atom.Game
           distance++
         opposite = {'up':'down','down':'up','left':'right','right':'left'}
         if distance > 0 and dir == opposite[@grid[py*@size+px]]
-          @grid[y*@size+x] = null
-          @grid[py*@size+px] = null
-          dead++
-          @points += distance
-    return dead
+          dead.push [x,y], [px, py]
+          @points += distance * round
+    for [x,y] in dead
+      @grid[y*@size+x] = null
+    return dead.length
+
   draw: ->
     ctx.fillStyle = 'white'
     ctx.fillRect 0, 0, canvas.width, canvas.height
