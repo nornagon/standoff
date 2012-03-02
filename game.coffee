@@ -7,8 +7,6 @@ ctx.translate 0, -600
 τ = Math.PI*2
 
 game = null
-window.onblur = -> game?.stop()
-window.onfocus = -> game?.run()
 
 randomDirection = ->
   r = Math.random() * 4
@@ -73,9 +71,9 @@ class Game extends atom.Game
     ctx.translate 800, -600
     ctx.textAlign = 'right'
     ctx.textBaseline = 'top'
-    ctx.font = '20px KongtextRegular'
+    ctx.font = '20px KongtextRegular, sans-serif'
     ctx.fillStyle = 'black'
-    ctx.fillText @points, -10, 10
+    ctx.fillText "#{@points}", -10, 10
     ctx.restore()
     @dirty = false
   drawArrow: (x, y, dir) ->
@@ -97,4 +95,7 @@ class Game extends atom.Game
 atom.input.bind atom.button.LEFT, 'click'
 
 game = new Game
-game.run()
+window.onload = ->
+  window.onblur = -> game?.stop()
+  window.onfocus = -> game?.run()
+  game.run()
