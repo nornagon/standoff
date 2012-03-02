@@ -22,6 +22,7 @@ class Game extends atom.Game
     for i in [0...@grid.length]
       @grid[i] = randomDirection()
     @points = 0
+    @dirty = true
   update: (dt) ->
     if atom.input.pressed 'click'
       mx = atom.input.mouse.x; my = 600 - atom.input.mouse.y
@@ -60,6 +61,7 @@ class Game extends atom.Game
     return dead.length
 
   draw: ->
+    return unless @dirty
     ctx.fillStyle = 'white'
     ctx.fillRect 0, 0, canvas.width, canvas.height
     for y in [0...@size]
@@ -75,6 +77,7 @@ class Game extends atom.Game
     ctx.fillStyle = 'black'
     ctx.fillText @points, -10, 10
     ctx.restore()
+    @dirty = false
   drawArrow: (x, y, dir) ->
     ctx.save()
     ctx.translate (x+0.5)*arrowSize, (y+0.5)*arrowSize
