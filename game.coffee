@@ -15,9 +15,9 @@ randomDirection = ->
   return ['up','down','left','right'][Math.floor r]
 
 class Game extends atom.Game
-  arrowSize = 30
+  arrowSize = 60
   constructor: ->
-    @size = 20
+    @size = 10
     @grid = new Array(@size*@size)
     for i in [0...@grid.length]
       @grid[i] = randomDirection()
@@ -76,7 +76,7 @@ class Game extends atom.Game
     ctx.translate (x+0.5)*arrowSize, (y+0.5)*arrowSize
     ctx.rotate ({right:0,up:τ/4,left:τ/2,down:τ*3/4})[dir]
     ctx.scale 0.7,0.7
-    ctx.lineWidth = 7
+    ctx.lineWidth = arrowSize*0.2
     ctx.beginPath()
     ctx.moveTo -arrowSize/2,0
     ctx.lineTo arrowSize/2,0
