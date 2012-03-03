@@ -21,26 +21,42 @@ class Game extends atom.Game
       @grid[i] = randomDirection()
     @points = 0
     @dirty = true
+    @state = 'ready'
+    @time = 0
+    @animTime = 0.4
+    @round = 1
   update: (dt) ->
-    if atom.input.pressed 'click'
-      mx = atom.input.mouse.x; my = 600 - atom.input.mouse.y
-      gridx = Math.floor mx/arrowSize
-      gridy = Math.floor my/arrowSize
-      @clicked gridx, gridy
+    switch @state
+      when 'ready'
+        if atom.input.pressed 'click'
+          mx = atom.input.mouse.x; my = 600 - atom.input.mouse.y
+          gridx = Math.floor mx/arrowSize
+          gridy = Math.floor my/arrowSize
+          @clicked gridx, gridy
+      when 'animating'
+        if (@time+=dt) >= @animTime
+          @time = 0
+          if @resolveDuels()
+            @dirty = true
+          else
+            @state = 'ready'
+            @round = 1
   clicked: (x, y) ->
     return unless 0 <= x < @size and 0 <= y < @size
     @grid[y*@size+x] = null
-    round = 1
-    loop
-      break unless @resolveDuels(round++)
+    if @resolveDuels()
+      @state = 'animating'
+      @time = 0
     @dirty = true
-  resolveDuels: (round) ->
+  resolveDuels: ->
     # remove one round of duelists
     dead = []
+    deadSet = {}
     for y in [0...@size]
       for x in [0...@size]
         dir = @grid[y*@size+x]
         continue unless dir
+        continue if [x,y] of deadSet
         [dx,dy] = ({up:[0,1],down:[0,-1],left:[-1,0],right:[1,0]})[dir]
         px = x+dx
         py = y+dy
@@ -53,9 +69,11 @@ class Game extends atom.Game
         opposite = {'up':'down','down':'up','left':'right','right':'left'}
         if distance > 0 and dir == opposite[@grid[py*@size+px]]
           dead.push [x,y], [px, py]
+          deadSet[[x,y]] = deadSet[[px,py]] = true
           @points += distance * round
     for [x,y] in dead
       @grid[y*@size+x] = null
+    @round++ if dead.length > 0
     return dead.length
 
   draw: ->
