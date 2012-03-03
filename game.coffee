@@ -8,9 +8,59 @@ ctx.translate 0, -600
 
 game = null
 
+D = {up:[0,1],down:[0,-1],left:[-1,0],right:[1,0]}
+opposite = {'up':'down','down':'up','left':'right','right':'left'}
+
 randomDirection = ->
   r = Math.random() * 4
   return ['up','down','left','right'][Math.floor r]
+
+generateGrid = (size) ->
+  oneGrid = ->
+    grid = new Array(size*size)
+    for i in [0...grid.length]
+      grid[i] = randomDirection()
+    loop
+      break unless removeUselessGuys(grid, size)
+    grid
+  count = (g) ->
+    n = 0
+    n++ for d,i in g when d
+    n
+  loop
+    g = oneGrid()
+    return g if count(g) >= 0.9*size*size
+
+removeUselessGuys = (grid, size) ->
+  canDuel = (x, y) ->
+    dir = grid[x+y*size]
+    [dx,dy] = D[dir]
+    duelFound = false
+    cx = x+dx*2; cy = y+dy*2
+    while 0 <= cx < size and 0 <= cy < size
+      if grid[cx+cy*size] == opposite[dir]
+        duelFound = true
+        break
+      cx += dx
+      cy += dy
+    return duelFound
+  canBlock = (x, y) ->
+    dir = grid[x+y*size]
+    allLeft = (grid[xp+y*size] for xp in [0...x]) ? []
+    allRight = (grid[xp+y*size] for xp in [x+1...size]) ? []
+    return true if 'right' in allLeft and 'left' in allRight
+    allDown = (grid[x+yp*size] for yp in [0...y]) ? []
+    allUp = (grid[x+yp*size] for yp in [y+1...size]) ? []
+    return true if 'up' in allDown and 'down' in allUp
+    false
+  dead = 0
+  for y in [0...size]
+    for x in [0...size]
+      continue unless grid[x+y*size]
+      unless canBlock(x,y) or canDuel(x,y)
+        grid[x+y*size] = null
+        dead++
+  return dead
 
 class ScoreText
   constructor: (@x, @y, @score, @round) ->
@@ -36,9 +86,7 @@ class Game extends atom.Game
   arrowSize = 60
   constructor: ->
     @size = 10
-    @grid = new Array(@size*@size)
-    for i in [0...@grid.length]
-      @grid[i] = randomDirection()
+    @grid = generateGrid @size
     @points = 0
     @dirty = true
     @state = 'ready'
@@ -98,7 +146,6 @@ class Game extends atom.Game
           px += dx
           py += dy
           distance++
-        opposite = {'up':'down','down':'up','left':'right','right':'left'}
         if distance > 0 and dir == opposite[@grid[py*@size+px]]
           dead.push [x,y], [px, py]
           deadSet[[x,y]] = deadSet[[px,py]] = true
