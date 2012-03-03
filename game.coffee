@@ -12,6 +12,26 @@ randomDirection = ->
   r = Math.random() * 4
   return ['up','down','left','right'][Math.floor r]
 
+class ScoreText
+  constructor: (@x, @y, @score, @round) ->
+    @t = @age = 0
+    @maxAge = 1
+  update: (dt) ->
+    @age += dt
+    @t = @age/@maxAge
+  font: -> "#{20+@round*5}px KongtextRegular, sans-serif"
+  draw: ->
+    ctx.save()
+    ctx.translate @x, @y
+    ctx.scale 1,-1
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.font = @font()
+    ctx.fillStyle = "rgba(255,0,0,#{1-@t})"
+    ctx.fillText @score*@round, 0, -@t*20
+    ctx.restore()
+  alive: -> @t <= 1
+
 class Game extends atom.Game
   arrowSize = 60
   constructor: ->
@@ -25,7 +45,18 @@ class Game extends atom.Game
     @time = 0
     @animTime = 0.4
     @round = 1
+    @particles = []
   update: (dt) ->
+    @dirty = true if @particles.length > 0
+    p.update dt for p in @particles
+    i = 0
+    while i < @particles.length
+      p = @particles[i]
+      if not p.alive()
+        @particles[i] = @particles[@particles.length-1]
+        @particles.length--
+      else
+        i++
     switch @state
       when 'ready'
         if atom.input.pressed 'click'
@@ -70,7 +101,11 @@ class Game extends atom.Game
         if distance > 0 and dir == opposite[@grid[py*@size+px]]
           dead.push [x,y], [px, py]
           deadSet[[x,y]] = deadSet[[px,py]] = true
-          @points += distance * round
+          @points += distance * @round
+          midx = (0.5+(x+px)/2)*arrowSize; midy = (0.5+(y+py)/2)*arrowSize
+          midx += (Math.random()*2-1)*arrowSize*0.4
+          midy += (Math.random()*2-1)*arrowSize*0.4
+          @particles.push new ScoreText midx, midy, distance, @round
     for [x,y] in dead
       @grid[y*@size+x] = null
     @round++ if dead.length > 0
@@ -84,6 +119,7 @@ class Game extends atom.Game
       for x in [0...@size]
         g = @grid[y*@size+x]
         @drawArrow x, y, g if g
+    p.draw() for p in @particles
     ctx.save()
     ctx.scale 1,-1
     ctx.translate 800, -600
