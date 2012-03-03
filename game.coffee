@@ -74,6 +74,7 @@ class Game extends atom.Game
             @round = 1
   clicked: (x, y) ->
     return unless 0 <= x < @size and 0 <= y < @size
+    return unless @grid[y*@size+x]
     @grid[y*@size+x] = null
     if @resolveDuels()
       @state = 'animating'
