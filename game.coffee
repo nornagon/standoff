@@ -149,11 +149,11 @@ class Game extends atom.Game
         if distance > 0 and dir == opposite[@grid[py*@size+px]]
           dead.push [x,y], [px, py]
           deadSet[[x,y]] = deadSet[[px,py]] = true
-          @points += distance * @round
+          @points += distance * 10 * @round
           midx = (0.5+(x+px)/2)*arrowSize; midy = (0.5+(y+py)/2)*arrowSize
           midx += (Math.random()*2-1)*arrowSize*0.4
           midy += (Math.random()*2-1)*arrowSize*0.4
-          @particles.push new ScoreText midx, midy, distance, @round
+          @particles.push new ScoreText midx, midy, distance * 10, @round
     for [x,y] in dead
       @grid[y*@size+x] = null
     @round++ if dead.length > 0
@@ -173,7 +173,7 @@ class Game extends atom.Game
     ctx.translate 800, -600
     ctx.textAlign = 'right'
     ctx.textBaseline = 'top'
-    ctx.font = '20px KongtextRegular, sans-serif'
+    ctx.font = '40px KongtextRegular, sans-serif'
     ctx.fillStyle = 'black'
     ctx.fillText "#{@points}", -10, 10
     ctx.restore()
