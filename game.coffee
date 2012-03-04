@@ -91,7 +91,7 @@ class Game extends atom.Game
     @dirty = true
     @state = 'ready'
     @time = 0
-    @animTime = 0.4
+    @animTime = 0.6
     @round = 1
     @particles = []
   update: (dt) ->
@@ -124,11 +124,12 @@ class Game extends atom.Game
     return unless 0 <= x < @size and 0 <= y < @size
     return unless @grid[y*@size+x]
     @grid[y*@size+x] = null
-    if @resolveDuels()
+    if @duelsExist()
       @state = 'animating'
       @time = 0
     @dirty = true
-  resolveDuels: ->
+  duelsExist: -> @resolveDuels false
+  resolveDuels: (die=true) ->
     # remove one round of duelists
     dead = []
     deadSet = {}
@@ -149,14 +150,16 @@ class Game extends atom.Game
         if distance > 0 and dir == opposite[@grid[py*@size+px]]
           dead.push [x,y], [px, py]
           deadSet[[x,y]] = deadSet[[px,py]] = true
-          @points += distance * 10 * @round
-          midx = (0.5+(x+px)/2)*arrowSize; midy = (0.5+(y+py)/2)*arrowSize
-          midx += (Math.random()*2-1)*arrowSize*0.4
-          midy += (Math.random()*2-1)*arrowSize*0.4
-          @particles.push new ScoreText midx, midy, distance * 10, @round
-    for [x,y] in dead
-      @grid[y*@size+x] = null
-    @round++ if dead.length > 0
+          if die
+            @points += distance * 10 * @round
+            midx = (0.5+(x+px)/2)*arrowSize; midy = (0.5+(y+py)/2)*arrowSize
+            midx += (Math.random()*2-1)*arrowSize*0.4
+            midy += (Math.random()*2-1)*arrowSize*0.4
+            @particles.push new ScoreText midx, midy, distance * 10, @round
+    if die
+      for [x,y] in dead
+        @grid[y*@size+x] = null
+      @round++ if dead.length > 0
     return dead.length
 
   draw: ->
@@ -178,6 +181,18 @@ class Game extends atom.Game
     ctx.fillText "#{@points}", -10, 10
     ctx.restore()
     @dirty = false
+  duelling: (x, y) ->
+    dir = @grid[y*@size+x]
+    return false unless dir
+    [dx,dy] = D[dir]
+    px = x+dx
+    py = y+dy
+    distance = 0
+    while 0 <= px+dx < @size and 0 <= py+dy < @size
+      break if @grid[py*@size+px]
+      px += dx; py += dy
+      distance++
+    distance >= 1 and @grid[py*@size+px] == opposite[dir]
   drawArrow: (x, y, dir) ->
     ctx.save()
     ctx.translate (x+0.5)*arrowSize, (y+0.5)*arrowSize
@@ -190,7 +205,7 @@ class Game extends atom.Game
     ctx.moveTo 0,-arrowSize/2
     ctx.lineTo arrowSize/2,0
     ctx.lineTo 0,arrowSize/2
-    ctx.strokeStyle = 'black'
+    ctx.strokeStyle = if @duelling(x,y) then 'red' else 'black'
     ctx.stroke()
     ctx.restore()
 
