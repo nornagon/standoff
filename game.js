@@ -291,12 +291,12 @@ Game = (function() {
           dead.push([x, y], [px, py]);
           deadSet[[x, y]] = deadSet[[px, py]] = true;
           if (die) {
-            this.points += distance * 10 * this.round;
+            this.points += distance * this.round;
             midx = (0.5 + (x + px) / 2) * arrowSize;
             midy = (0.5 + (y + py) / 2) * arrowSize;
             midx += (Math.random() * 2 - 1) * arrowSize * 0.4;
             midy += (Math.random() * 2 - 1) * arrowSize * 0.4;
-            this.particles.push(new ScoreText(midx, midy, distance * 10, this.round));
+            this.particles.push(new ScoreText(midx, midy, distance, this.round));
           }
         }
       }
