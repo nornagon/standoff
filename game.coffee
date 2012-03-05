@@ -84,14 +84,14 @@ class ScoreText
     ctx.restore()
   alive: -> @t <= 1
 
+arrowSize = 60
 class Game extends atom.Game
-  arrowSize = 60
   constructor: ->
     @size = 10
     @grid = generateGrid @size
     @points = 0
     @dirty = true
-    @state = 'ready'
+    @state = 'entering'
     @time = 0
     @animTime = 0.6
     @round = 1
@@ -108,6 +108,11 @@ class Game extends atom.Game
       else
         i++
     switch @state
+      when 'entering'
+        @time += dt
+        if @time >= 0.2
+          @state = 'ready'
+        @dirty = true
       when 'ready'
         if atom.input.pressed 'click'
           mx = atom.input.mouse.x; my = 600 - atom.input.mouse.y
@@ -166,8 +171,11 @@ class Game extends atom.Game
 
   draw: ->
     return unless @dirty
+    ctx.globalAlpha = 1
     ctx.fillStyle = 'white'
     ctx.fillRect 0, 0, canvas.width, canvas.height
+    if @state == 'entering'
+      ctx.globalAlpha = @time/0.2
     for y in [0...@size]
       for x in [0...@size]
         g = @grid[y*@size+x]
@@ -213,9 +221,82 @@ class Game extends atom.Game
     ctx.stroke()
     ctx.restore()
 
+arrowPath = ->
+  ctx.lineWidth = arrowSize*0.3
+  ctx.lineJoin = 'round'
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo -arrowSize/2,0
+  ctx.lineTo arrowSize/2,0
+  ctx.moveTo 0,-arrowSize/2
+  ctx.lineTo arrowSize/2,0
+  ctx.lineTo 0,arrowSize/2
+
 atom.input.bind atom.button.LEFT, 'click'
 
-game = new Game
+class Title extends atom.Game
+  constructor: ->
+    super()
+    @time = 0
+    @enterTime = 0
+
+  update: (dt) ->
+    @time += dt
+    if not @entering
+      if atom.input.pressed 'click'
+        @entering = true
+    else
+      @enterTime += dt
+      if @enterTime >= 2
+        game = new Game
+        @stop()
+        game.run()
+
+  draw: ->
+    ctx.globalAlpha = 1
+    ctx.fillStyle = 'white'
+    ctx.fillRect 0, 0, canvas.width, canvas.height
+    if @enterTime >= 1.8
+      ctx.globalAlpha = (2-@enterTime)/0.2
+    ctx.save()
+    ctx.translate canvas.width/2, canvas.height/2
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.scale 1,-1
+    ctx.font = "90px #{FONT}, sans-serif"
+    ctx.fillStyle = 'black'
+    ctx.fillText 'STAND', -91, 0
+    c = Math.cos @time*4
+    ctx.fillStyle = "rgba(0, 0, 0, #{0.8+c*0.2})"
+    if @enterTime <= 0.1
+      ctx.fillText 'O', 105, 0
+    ctx.fillStyle = 'black'
+    ctx.fillText 'FF', 196, 0
+    ctx.restore()
+
+    if @enterTime < 0.1
+      ctx.strokeStyle = 'black'
+    else
+      ctx.strokeStyle = 'red'
+    if @enterTime < 1.2
+      # down arrow
+      ctx.save()
+      ctx.translate 505, 380
+      ctx.rotate 3*τ/4
+      ctx.scale 0.8, 0.8
+      arrowPath()
+      ctx.stroke()
+      ctx.restore()
+
+      # up arrow
+      ctx.save()
+      ctx.translate 505, 150
+      ctx.rotate τ/4
+      ctx.scale 0.8, 0.8
+      arrowPath()
+      ctx.stroke()
+      ctx.restore()
+game = new Title
 window.onload = ->
   window.onblur = -> game?.stop()
   window.onfocus = -> game?.run()
