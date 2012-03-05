@@ -151,11 +151,11 @@ class Game extends atom.Game
           dead.push [x,y], [px, py]
           deadSet[[x,y]] = deadSet[[px,py]] = true
           if die
-            @points += distance * 10 * @round
+            @points += distance * @round
             midx = (0.5+(x+px)/2)*arrowSize; midy = (0.5+(y+py)/2)*arrowSize
             midx += (Math.random()*2-1)*arrowSize*0.4
             midy += (Math.random()*2-1)*arrowSize*0.4
-            @particles.push new ScoreText midx, midy, distance * 10, @round
+            @particles.push new ScoreText midx, midy, distance, @round
     if die
       for [x,y] in dead
         @grid[y*@size+x] = null
