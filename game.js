@@ -1,4 +1,4 @@
-var D, Game, ScoreText, canvas, ctx, game, generateGrid, opposite, randomDirection, removeUselessGuys, τ;
+var D, FONT, Game, ScoreText, canvas, ctx, game, generateGrid, opposite, randomDirection, removeUselessGuys, τ;
 var __indexOf = Array.prototype.indexOf || function(item) {
   for (var i = 0, l = this.length; i < l; i++) {
     if (this[i] === item) return i;
@@ -19,6 +19,7 @@ ctx = atom.context;
 ctx.scale(1, -1);
 ctx.translate(0, -600);
 τ = Math.PI * 2;
+FONT = 'SnigletRegular';
 game = null;
 D = {
   up: [0, 1],
@@ -162,7 +163,7 @@ ScoreText = (function() {
     return this.t = this.age / this.maxAge;
   };
   ScoreText.prototype.font = function() {
-    return "" + (20 + this.round * 5) + "px KongtextRegular, sans-serif";
+    return "" + (20 + this.round * 5) + "px " + FONT + ", sans-serif";
   };
   ScoreText.prototype.draw = function() {
     ctx.save();
@@ -337,7 +338,7 @@ Game = (function() {
     ctx.translate(800, -600);
     ctx.textAlign = 'right';
     ctx.textBaseline = 'top';
-    ctx.font = '40px KongtextRegular, sans-serif';
+    ctx.font = "40px " + FONT + ", sans-serif";
     ctx.fillStyle = 'black';
     ctx.fillText("" + this.points, -10, 10);
     ctx.restore();
@@ -372,8 +373,10 @@ Game = (function() {
       left: τ / 2,
       down: τ * 3 / 4
     }[dir]);
-    ctx.scale(0.7, 0.7);
-    ctx.lineWidth = arrowSize * 0.2;
+    ctx.scale(0.6, 0.6);
+    ctx.lineWidth = arrowSize * 0.3;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(-arrowSize / 2, 0);
     ctx.lineTo(arrowSize / 2, 0);
