@@ -6,6 +6,8 @@ ctx.scale 1, -1
 ctx.translate 0, -600
 τ = Math.PI*2
 
+FONT = 'SnigletRegular'
+
 game = null
 
 D = {up:[0,1],down:[0,-1],left:[-1,0],right:[1,0]}
@@ -69,7 +71,7 @@ class ScoreText
   update: (dt) ->
     @age += dt
     @t = @age/@maxAge
-  font: -> "#{20+@round*5}px KongtextRegular, sans-serif"
+  font: -> "#{20+@round*5}px #{FONT}, sans-serif"
   draw: ->
     ctx.save()
     ctx.translate @x, @y
@@ -176,7 +178,7 @@ class Game extends atom.Game
     ctx.translate 800, -600
     ctx.textAlign = 'right'
     ctx.textBaseline = 'top'
-    ctx.font = '40px KongtextRegular, sans-serif'
+    ctx.font = "40px #{FONT}, sans-serif"
     ctx.fillStyle = 'black'
     ctx.fillText "#{@points}", -10, 10
     ctx.restore()
@@ -197,8 +199,10 @@ class Game extends atom.Game
     ctx.save()
     ctx.translate (x+0.5)*arrowSize, (y+0.5)*arrowSize
     ctx.rotate ({right:0,up:τ/4,left:τ/2,down:τ*3/4})[dir]
-    ctx.scale 0.7,0.7
-    ctx.lineWidth = arrowSize*0.2
+    ctx.scale 0.6,0.6
+    ctx.lineWidth = arrowSize*0.3
+    ctx.lineJoin = 'round'
+    ctx.lineCap = 'round'
     ctx.beginPath()
     ctx.moveTo -arrowSize/2,0
     ctx.lineTo arrowSize/2,0
