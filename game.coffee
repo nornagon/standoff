@@ -411,7 +411,7 @@ class Title extends atom.Game
         width += oneWidth + 20
       width += 60
 
-      repeats = Math.ceil(canvas.width / width)
+      repeats = Math.ceil(canvas.width / width) + 1
 
       left = -((-left) % width)
 
