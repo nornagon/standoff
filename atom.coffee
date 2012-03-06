@@ -69,6 +69,7 @@ atom.button =
   WHEELDOWN: -4
   WHEELUP: -5
 atom.key =
+  BACKSPACE: 8
   TAB: 9
   ENTER: 13
   ESC: 27
