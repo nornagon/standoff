@@ -6,7 +6,7 @@ ctx.scale 1, -1
 ctx.translate 0, -600
 τ = Math.PI*2
 
-FONT = 'SnigletRegular'
+FONT = 'SnigletRegular, sans-serif'
 
 game = null
 
@@ -20,6 +20,7 @@ randomDirection = ->
 generateGrid = (size) ->
   oneGrid = ->
     grid = new Array(size*size)
+    grid.size = size
     for i in [0...grid.length]
       grid[i] = randomDirection()
     loop
@@ -33,36 +34,45 @@ generateGrid = (size) ->
     g = oneGrid()
     return g if count(g) >= 0.9*size*size
 
-removeUselessGuys = (grid, size) ->
-  canDuel = (x, y) ->
-    dir = grid[x+y*size]
-    [dx,dy] = D[dir]
-    duelFound = false
-    cx = x+dx*2; cy = y+dy*2
-    while 0 <= cx < size and 0 <= cy < size
-      if grid[cx+cy*size] == opposite[dir]
-        duelFound = true
-        break
-      cx += dx
-      cy += dy
-    return duelFound
-  canBlock = (x, y) ->
-    dir = grid[x+y*size]
-    allLeft = (grid[xp+y*size] for xp in [0...x]) ? []
-    allRight = (grid[xp+y*size] for xp in [x+1...size]) ? []
-    return true if 'right' in allLeft and 'left' in allRight
-    allDown = (grid[x+yp*size] for yp in [0...y]) ? []
-    allUp = (grid[x+yp*size] for yp in [y+1...size]) ? []
-    return true if 'up' in allDown and 'down' in allUp
-    false
+canDuel = (grid, x, y) ->
+  size = grid.size
+  dir = grid[x+y*size]
+  [dx,dy] = D[dir]
+  cx = x+dx*2; cy = y+dy*2
+  while 0 <= cx < size and 0 <= cy < size
+    if grid[cx+cy*size] == opposite[dir]
+      return true
+    cx += dx
+    cy += dy
+  return false
+canBlock = (grid, x, y) ->
+  size = grid.size
+  dir = grid[x+y*size]
+  allLeft = (grid[xp+y*size] for xp in [0...x]) ? []
+  allRight = (grid[xp+y*size] for xp in [x+1...size]) ? []
+  return true if 'right' in allLeft and 'left' in allRight
+  allDown = (grid[x+yp*size] for yp in [0...y]) ? []
+  allUp = (grid[x+yp*size] for yp in [y+1...size]) ? []
+  return true if 'up' in allDown and 'down' in allUp
+  false
+isUseful = (grid, x, y) -> canBlock(grid, x,y) or canDuel(grid, x,y)
+removeUselessGuys = (grid) ->
+  size = grid.size
   dead = 0
   for y in [0...size]
     for x in [0...size]
       continue unless grid[x+y*size]
-      unless canBlock(x,y) or canDuel(x,y)
+      unless isUseful grid, x, y
         grid[x+y*size] = null
         dead++
   return dead
+containsUsefulGuys = (grid) ->
+  size = grid.size
+  for y in [0...size]
+    for x in [0...size]
+      continue unless grid[x+y*size]
+      return true if isUseful grid, x, y
+  return false
 
 class ScoreText
   constructor: (@x, @y, @score, @round) ->
@@ -71,7 +81,7 @@ class ScoreText
   update: (dt) ->
     @age += dt
     @t = @age/@maxAge
-  font: -> "#{20+@round*5}px #{FONT}, sans-serif"
+  font: -> "#{20+@round*5}px #{FONT}"
   draw: ->
     ctx.save()
     ctx.translate @x, @y
@@ -96,6 +106,7 @@ class Game extends atom.Game
     @animTime = 0.6
     @round = 1
     @particles = []
+    @prevBest = @best()
   update: (dt) ->
     @dirty = true if @particles.length > 0
     p.update dt for p in @particles
@@ -126,7 +137,20 @@ class Game extends atom.Game
             @dirty = true
           else
             @state = 'ready'
+            if not containsUsefulGuys @grid
+              @state = 'done'
+              @updateBest()
             @round = 1
+      when 'done'
+        if atom.input.pressed 'click'
+          @stop()
+          game = new Game
+          game.run()
+  best: -> parseInt(localStorage.best ? 0)
+  updateBest: ->
+    prevBest = @best()
+    if @points > prevBest
+      localStorage.best = @points
   clicked: (x, y) ->
     return unless 0 <= x < @size and 0 <= y < @size
     return unless @grid[y*@size+x]
@@ -176,20 +200,39 @@ class Game extends atom.Game
     ctx.fillRect 0, 0, canvas.width, canvas.height
     if @state == 'entering'
       ctx.globalAlpha = @time/0.2
+    if @state == 'done'
+      ctx.globalAlpha = 0.6
     for y in [0...@size]
       for x in [0...@size]
         g = @grid[y*@size+x]
         @drawArrow x, y, g if g
     p.draw() for p in @particles
+    ctx.globalAlpha = 1
     ctx.save()
     ctx.scale 1,-1
     ctx.translate 800, -600
     ctx.textAlign = 'right'
     ctx.textBaseline = 'top'
-    ctx.font = "40px #{FONT}, sans-serif"
+    ctx.font = "40px #{FONT}"
     ctx.fillStyle = 'black'
     ctx.fillText "#{@points}", -10, 10
+    ctx.fillText "#{@prevBest}", -10, 50+20
+    ctx.font = "20px #{FONT}"
+    ctx.fillText "SCORE", -15, 50
+    ctx.fillText "BEST", -15, 50+20+40
     ctx.restore()
+    if @state == 'done'
+      ctx.save()
+      ctx.translate 300, 300
+      ctx.scale 1, -1
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.font = "80px #{FONT}"
+      ctx.fillStyle = 'black'
+      ctx.fillText 'GAME OVER', 0, 0
+      ctx.font = "30px #{FONT}"
+      ctx.fillText '(click to start again)', 0, 50
+      ctx.restore()
     @dirty = false
   duelling: (x, y) ->
     dir = @grid[y*@size+x]
@@ -263,7 +306,7 @@ class Title extends atom.Game
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.scale 1,-1
-    ctx.font = "90px #{FONT}, sans-serif"
+    ctx.font = "90px #{FONT}"
     ctx.fillStyle = 'black'
     ctx.fillText 'STAND', -91, 0
     c = Math.cos @time*4
@@ -297,6 +340,7 @@ class Title extends atom.Game
       ctx.stroke()
       ctx.restore()
 game = new Title
+#game = new Game
 window.onload = ->
   window.onblur = -> game?.stop()
   window.onfocus = -> game?.run()
