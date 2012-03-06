@@ -10,6 +10,8 @@ FONT = 'SnigletRegular, sans-serif'
 
 game = null
 
+playerName = undefined
+
 D = {up:[0,1],down:[0,-1],left:[-1,0],right:[1,0]}
 opposite = {'up':'down','down':'up','left':'right','right':'left'}
 
@@ -99,6 +101,8 @@ class Game extends atom.Game
   constructor: ->
     @size = 10
     @grid = generateGrid @size
+    @initialGrid = JSON.parse JSON.stringify @grid
+    @moves = []
     @points = 0
     @dirty = true
     @state = 'entering'
@@ -137,24 +141,55 @@ class Game extends atom.Game
             @dirty = true
           else
             @state = 'ready'
-            if not containsUsefulGuys @grid
-              @state = 'done'
-              @updateBest()
+            if not containsUsefulGuys @grid then @endGame()
             @round = 1
+      when 'enter name'
+        if atom.input.pressed 'confirm'
+          @state = 'done'
+          document.removeEventListener 'keypress', @listener
+          @listener = null
+          @dirty = true
+          @sendScore()
+        else if atom.input.pressed 'bksp'
+          playerName = playerName.substr(0, playerName.length-1)
+          @dirty = true
       when 'done'
         if atom.input.pressed 'click'
           @stop()
           game = new Game
           game.run()
+  keypress: (e) ->
+    playerName ?= ''
+    playerName += String.fromCharCode(e.charCode) unless playerName.length >= 16
+    @dirty = true
+  endGame: ->
+    @state = if playerName then 'done' else 'enter name'
+    if @state == 'enter name' then document.addEventListener 'keypress', @listener = (e) => @keypress e
+    @updateBest()
+    @sendScore() if playerName
   best: -> parseInt(localStorage.best ? 0)
   updateBest: ->
     prevBest = @best()
     if @points > prevBest
       localStorage.best = @points
+  sendScore: ->
+    return unless playerName
+    req = new XMLHttpRequest
+    req.open 'POST', 'http://libris.nornagon.net/jca/standoff.cgi', true
+    req.setRequestHeader 'Content-Type', 'application/json;charset=UTF-8'
+    req.send JSON.stringify {
+      grid: @initialGrid,
+      size: @size,
+      moves: @moves,
+      score: @points,
+      name: playerName
+    }
   clicked: (x, y) ->
     return unless 0 <= x < @size and 0 <= y < @size
     return unless @grid[y*@size+x]
     @grid[y*@size+x] = null
+    if not containsUsefulGuys @grid then @endGame()
+    @moves.push y*@size+x
     if @duelsExist()
       @state = 'animating'
       @time = 0
@@ -200,7 +235,7 @@ class Game extends atom.Game
     ctx.fillRect 0, 0, canvas.width, canvas.height
     if @state == 'entering'
       ctx.globalAlpha = @time/0.2
-    if @state == 'done'
+    if @state == 'done' or @state == 'enter name'
       ctx.globalAlpha = 0.6
     for y in [0...@size]
       for x in [0...@size]
@@ -232,6 +267,18 @@ class Game extends atom.Game
       ctx.fillText 'GAME OVER', 0, 0
       ctx.font = "30px #{FONT}"
       ctx.fillText '(click to start again)', 0, 50
+      ctx.restore()
+    else if @state == 'enter name'
+      ctx.save()
+      ctx.translate 300, 300
+      ctx.scale 1, -1
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = 'black'
+      ctx.font = "30px #{FONT}"
+      ctx.fillText 'ENTER YOUR NAME:', 0, -50
+      ctx.font = "80px #{FONT}"
+      ctx.fillText playerName ? '_', 0, 0
       ctx.restore()
     @dirty = false
   duelling: (x, y) ->
@@ -276,13 +323,25 @@ arrowPath = ->
   ctx.lineTo 0,arrowSize/2
 
 atom.input.bind atom.button.LEFT, 'click'
+atom.input.bind atom.key.ENTER, 'confirm'
+atom.input.bind atom.key.BACKSPACE, 'bksp'
+atom.input.bind 8, 'bksp'
 
 class Title extends atom.Game
   constructor: ->
     super()
     @time = 0
     @enterTime = 0
+    req = new XMLHttpRequest
+    req.open 'GET', 'http://libris.nornagon.net/jca/standoff.cgi', true
+    that = this
+    req.onreadystatechange = ->
+      if @readyState == @DONE
+        if @status == 200
+          that.gotHighScores JSON.parse req.responseText
+    req.send()
 
+  gotHighScores: (@highScores) ->
   update: (dt) ->
     @time += dt
     if not @entering
@@ -338,6 +397,35 @@ class Title extends atom.Game
       ctx.scale 0.8, 0.8
       arrowPath()
       ctx.stroke()
+      ctx.restore()
+
+    # high scores
+    if @highScores
+      ctx.save()
+      ctx.font = "20px #{FONT}"
+      left = -@time*50
+      width = 0
+      for {score, name} in @highScores
+        text = "#{name} #{score}"
+        oneWidth = ctx.measureText(text).width
+        width += oneWidth + 20
+      width += 60
+
+      repeats = Math.ceil(canvas.width / width)
+
+      left = -((-left) % width)
+
+      ctx.translate 10+left, 10
+      ctx.textBaseline = 'bottom'; ctx.textAlign = 'left'
+      ctx.fillStyle = 'black'
+      ctx.scale 1, -1
+      for [0...repeats]
+        for {score, name} in @highScores
+          text = "#{name} #{score}"
+          ctx.fillText text, 0, 0
+          oneWidth = ctx.measureText(text).width
+          ctx.translate oneWidth + 20, 0
+        ctx.translate 60, 0
       ctx.restore()
 game = new Title
 #game = new Game
