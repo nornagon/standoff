@@ -639,7 +639,7 @@ Title = (function() {
         width += oneWidth + 20;
       }
       width += 60;
-      repeats = Math.ceil(canvas.width / width);
+      repeats = Math.ceil(canvas.width / width) + 1;
       left = -((-left) % width);
       ctx.translate(10 + left, 10);
       ctx.textBaseline = 'bottom';
