@@ -45,8 +45,8 @@ atom.input = {
   released: (action) -> (action in @_released)
 
   onmousemove: (e) ->
-    @mouse.x = e.offsetX
-    @mouse.y = e.offsetY
+    @mouse.x = e.pageX - atom.canvas.offsetLeft
+    @mouse.y = e.pageY - atom.canvas.offsetTop
   onmousedown: (e) -> @onkeydown(e)
   onmouseup: (e) -> @onkeyup(e)
   onmousewheel: (e) ->

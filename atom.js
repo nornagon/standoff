@@ -66,8 +66,8 @@ atom.input = {
     return __indexOf.call(this._released, action) >= 0;
   },
   onmousemove: function(e) {
-    this.mouse.x = e.offsetX;
-    return this.mouse.y = e.offsetY;
+    this.mouse.x = e.pageX - atom.canvas.offsetLeft;
+    return this.mouse.y = e.pageY - atom.canvas.offsetTop;
   },
   onmousedown: function(e) {
     return this.onkeydown(e);
